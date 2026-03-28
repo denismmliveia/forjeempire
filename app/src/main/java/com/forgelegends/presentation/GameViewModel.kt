@@ -2,12 +2,14 @@ package com.forgelegends.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forgelegends.data.repository.CustomConceptRepository
 import com.forgelegends.data.repository.GameRepository
 import com.forgelegends.data.repository.WeaponShowcaseRepository
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.GameState
-import com.forgelegends.domain.model.WeaponFamily
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import com.forgelegends.domain.model.defaultUpgrades
+import com.forgelegends.domain.registry.ConceptRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -21,11 +23,25 @@ import javax.inject.Inject
 @HiltViewModel
 class GameViewModel @Inject constructor(
     private val gameRepository: GameRepository,
-    private val showcaseRepository: WeaponShowcaseRepository
+    private val showcaseRepository: WeaponShowcaseRepository,
+    private val customConceptRepository: CustomConceptRepository,
+    val conceptRegistry: ConceptRegistry
 ) : ViewModel() {
 
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
+
+    private val _customConcepts = MutableStateFlow<List<Concept>>(emptyList())
+
+    val allConcepts: StateFlow<List<Concept>> = kotlinx.coroutines.flow.combine(
+        kotlinx.coroutines.flow.flowOf(conceptRegistry.concepts),
+        _customConcepts
+    ) { assets, custom ->
+        assets + custom.filter { c -> assets.none { it.id == c.id } }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), conceptRegistry.concepts)
+
+    // Keep backward-compat property
+    val concepts: List<Concept> get() = allConcepts.value
 
     val showcaseEntries: StateFlow<List<WeaponShowcaseEntry>> =
         showcaseRepository.entries.stateIn(
@@ -47,7 +63,31 @@ class GameViewModel @Inject constructor(
                 _gameState.value = state
             }
         }
+        viewModelScope.launch {
+            customConceptRepository.concepts.collect { list ->
+                _customConcepts.value = list
+            }
+        }
     }
+
+    fun addCustomConcept(name: String) {
+        val id = name.trim().lowercase()
+            .replace(Regex("[^a-z0-9]+"), "_")
+            .trim('_')
+            .take(40)
+        val concept = Concept(
+            id = id,
+            name = name.trim(),
+            emoji = "\u2692\uFE0F",
+            description = ""
+        )
+        viewModelScope.launch {
+            customConceptRepository.addConcept(concept)
+        }
+    }
+
+    fun getActiveConcept(): Concept? =
+        conceptRegistry.getById(_gameState.value.activeConceptId)
 
     fun onTap() {
         val current = _gameState.value
@@ -104,7 +144,7 @@ class GameViewModel @Inject constructor(
         val entry = WeaponShowcaseEntry(
             id = current.currentRunId,
             runNumber = current.runNumber,
-            weaponFamily = current.activeWeaponFamily,
+            conceptId = current.activeConceptId,
             completedAtEpochMillis = System.currentTimeMillis(),
             totalSparks = current.totalSparksThisRun
         )
@@ -114,7 +154,7 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    fun archiveAndStartNewRun(family: WeaponFamily) {
+    fun archiveAndStartNewRun(conceptId: String) {
         val current = _gameState.value
         if (!current.runCompleted) return
 
@@ -122,7 +162,7 @@ class GameViewModel @Inject constructor(
 
         val newState = GameState(
             currentRunId = UUID.randomUUID().toString(),
-            activeWeaponFamily = family,
+            activeConceptId = conceptId,
             runNumber = current.runNumber + 1,
             permanentBonus = current.permanentBonus + 0.1,
             upgrades = defaultUpgrades()
@@ -132,15 +172,14 @@ class GameViewModel @Inject constructor(
         persistState(newState)
     }
 
-    fun startNewRun(family: WeaponFamily) {
+    fun startNewRun(conceptId: String) {
         val current = _gameState.value
-        if (!current.runCompleted) return
 
         val newState = GameState(
             currentRunId = UUID.randomUUID().toString(),
-            activeWeaponFamily = family,
-            runNumber = current.runNumber + 1,
-            permanentBonus = current.permanentBonus + 0.1,
+            activeConceptId = conceptId,
+            runNumber = if (current.runCompleted || current.activeConceptId.isEmpty()) current.runNumber + 1 else 1,
+            permanentBonus = if (current.runCompleted) current.permanentBonus + 0.1 else 1.0,
             upgrades = defaultUpgrades()
         )
 

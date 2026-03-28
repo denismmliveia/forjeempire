@@ -8,7 +8,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.forgelegends.domain.model.GameState
-import com.forgelegends.domain.model.WeaponFamily
 import com.forgelegends.domain.model.defaultUpgrades
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -23,7 +22,7 @@ class DataStoreGameRepository @Inject constructor(
 
     private companion object {
         val KEY_RUN_ID = stringPreferencesKey("current_run_id")
-        val KEY_WEAPON_FAMILY = stringPreferencesKey("active_weapon_family")
+        val KEY_CONCEPT_ID = stringPreferencesKey("active_concept_id")
         val KEY_SPARKS = longPreferencesKey("sparks")
         val KEY_SPARKS_PER_TAP = longPreferencesKey("sparks_per_tap")
         val KEY_FORGE_LEVEL = intPreferencesKey("forge_level")
@@ -39,9 +38,7 @@ class DataStoreGameRepository @Inject constructor(
         val upgradeLevels = parseUpgradeLevels(prefs[KEY_UPGRADES])
         GameState(
             currentRunId = prefs[KEY_RUN_ID] ?: "",
-            activeWeaponFamily = prefs[KEY_WEAPON_FAMILY]?.let {
-                runCatching { WeaponFamily.valueOf(it) }.getOrNull()
-            } ?: WeaponFamily.RUNIC_GREATSWORD,
+            activeConceptId = prefs[KEY_CONCEPT_ID] ?: "",
             sparks = prefs[KEY_SPARKS] ?: 0L,
             sparksPerTap = prefs[KEY_SPARKS_PER_TAP] ?: 1L,
             forgeLevel = prefs[KEY_FORGE_LEVEL] ?: 1,
@@ -59,7 +56,7 @@ class DataStoreGameRepository @Inject constructor(
     override suspend fun saveGameState(state: GameState) {
         dataStore.edit { prefs ->
             prefs[KEY_RUN_ID] = state.currentRunId
-            prefs[KEY_WEAPON_FAMILY] = state.activeWeaponFamily.name
+            prefs[KEY_CONCEPT_ID] = state.activeConceptId
             prefs[KEY_SPARKS] = state.sparks
             prefs[KEY_SPARKS_PER_TAP] = state.sparksPerTap
             prefs[KEY_FORGE_LEVEL] = state.forgeLevel

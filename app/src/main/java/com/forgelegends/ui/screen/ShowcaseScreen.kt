@@ -25,9 +25,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import com.forgelegends.ui.components.PhaseImageProvider
-import com.forgelegends.ui.components.WeaponVisualRegistry
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -35,6 +35,7 @@ import java.util.Locale
 @Composable
 fun ShowcaseScreen(
     entries: List<WeaponShowcaseEntry>,
+    conceptLookup: (String) -> Concept?,
     onEntryClick: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
@@ -67,13 +68,10 @@ fun ShowcaseScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text(
-                    text = "\u2694\uFE0F",
-                    fontSize = 64.sp
-                )
+                Text(text = "\u2694\uFE0F", fontSize = 64.sp)
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "No legendary weapons forged yet.\nReturn to the forge and craft your first masterpiece!",
+                    text = "No legendary creations forged yet.\nReturn to the forge and craft your first masterpiece!",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -86,7 +84,11 @@ fun ShowcaseScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(entries.reversed()) { entry ->
-                    ShowcaseCard(entry = entry, onClick = { onEntryClick(entry.id) })
+                    ShowcaseCard(
+                        entry = entry,
+                        concept = conceptLookup(entry.conceptId),
+                        onClick = { onEntryClick(entry.id) }
+                    )
                 }
             }
         }
@@ -96,10 +98,11 @@ fun ShowcaseScreen(
 @Composable
 private fun ShowcaseCard(
     entry: WeaponShowcaseEntry,
+    concept: Concept?,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val hasImages = PhaseImageProvider.hasPhaseImages(context, entry.weaponFamily)
+    val hasImages = PhaseImageProvider.hasPhaseImages(context, entry.conceptId)
 
     Card(
         colors = CardDefaults.cardColors(
@@ -115,13 +118,13 @@ private fun ShowcaseCard(
         ) {
             if (hasImages) {
                 PhaseImageProvider.PhaseImage(
-                    family = entry.weaponFamily,
+                    conceptId = entry.conceptId,
                     phase = 6,
                     modifier = Modifier.size(80.dp)
                 )
             } else {
                 Text(
-                    text = WeaponVisualRegistry.phaseEmoji(entry.weaponFamily, 7),
+                    text = concept?.emoji ?: "\uD83C\uDFC6",
                     fontSize = 48.sp
                 )
             }
@@ -129,7 +132,7 @@ private fun ShowcaseCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = WeaponVisualRegistry.victoryLabel(entry.weaponFamily),
+                text = concept?.name ?: entry.conceptId,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center

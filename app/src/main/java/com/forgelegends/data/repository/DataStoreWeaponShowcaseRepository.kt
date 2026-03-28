@@ -5,7 +5,6 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
-import com.forgelegends.domain.model.WeaponFamily
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -46,7 +45,7 @@ class DataStoreWeaponShowcaseRepository @Inject constructor(
         return listOf(
             e.id,
             e.runNumber.toString(),
-            e.weaponFamily.name,
+            e.conceptId,
             e.completedAtEpochMillis.toString(),
             e.totalSparks.toString()
         ).joinToString(FIELD_SEP)
@@ -59,7 +58,7 @@ class DataStoreWeaponShowcaseRepository @Inject constructor(
             WeaponShowcaseEntry(
                 id = parts[0],
                 runNumber = parts[1].toInt(),
-                weaponFamily = WeaponFamily.valueOf(parts[2]),
+                conceptId = parts[2],
                 completedAtEpochMillis = parts[3].toLong(),
                 totalSparks = parts[4].toLong()
             )

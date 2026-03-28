@@ -16,20 +16,24 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.GameState
 import com.forgelegends.ui.components.PhaseImageProvider
-import com.forgelegends.ui.components.WeaponVisualRegistry
 
 @Composable
 fun WeaponProgressScreen(
     gameState: GameState,
+    concept: Concept?,
     onBack: () -> Unit,
     onNavigateToCompletion: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val conceptId = gameState.activeConceptId
+    val emoji = concept?.emoji ?: "\u2692\uFE0F"
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -42,7 +46,7 @@ fun WeaponProgressScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "Weapon Progress",
+                text = concept?.name ?: "Progress",
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -53,14 +57,12 @@ fun WeaponProgressScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        // Phase progression display
         val context = LocalContext.current
-        val hasImages = PhaseImageProvider.hasPhaseImages(context, gameState.activeWeaponFamily)
+        val hasImages = PhaseImageProvider.hasPhaseImages(context, conceptId)
 
         for (phase in 1..gameState.maxPhase) {
             val completed = phase < gameState.currentPhase
             val current = phase == gameState.currentPhase
-            val emoji = WeaponVisualRegistry.phaseEmoji(gameState.activeWeaponFamily, phase)
             val label = "Phase $phase"
 
             Row(
@@ -72,7 +74,7 @@ fun WeaponProgressScreen(
             ) {
                 if (hasImages) {
                     PhaseImageProvider.PhaseImage(
-                        family = gameState.activeWeaponFamily,
+                        conceptId = conceptId,
                         phase = phase,
                         modifier = Modifier.size(48.dp)
                     )
@@ -118,7 +120,7 @@ fun WeaponProgressScreen(
         if (gameState.runCompleted) {
             Spacer(modifier = Modifier.height(24.dp))
             androidx.compose.material3.Button(onClick = onNavigateToCompletion) {
-                Text("View Completed Weapon!")
+                Text("View Completed Creation!")
             }
         }
     }

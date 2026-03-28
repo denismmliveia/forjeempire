@@ -16,13 +16,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.GameState
-import com.forgelegends.ui.components.WeaponVisualRegistry
 
 @Composable
 fun CompletionScreen(
     gameState: GameState,
-    onNavigateToWeaponSelect: () -> Unit,
+    concept: Concept?,
+    onNavigateToConceptSelect: () -> Unit,
     onNavigateToShowcase: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -33,15 +34,12 @@ fun CompletionScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "\uD83C\uDFC6",
-            fontSize = 80.sp
-        )
+        Text(text = "\uD83C\uDFC6", fontSize = 80.sp)
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
-            text = "Legendary Weapon Forged!",
+            text = "Legendary Creation Forged!",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.secondary,
             textAlign = TextAlign.Center
@@ -50,7 +48,7 @@ fun CompletionScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = WeaponVisualRegistry.victoryLabel(gameState.activeWeaponFamily),
+            text = concept?.name ?: gameState.activeConceptId,
             style = MaterialTheme.typography.titleLarge,
             color = MaterialTheme.colorScheme.primary,
             textAlign = TextAlign.Center
@@ -66,7 +64,7 @@ fun CompletionScreen(
 
         Spacer(modifier = Modifier.height(32.dp))
 
-        Button(onClick = onNavigateToWeaponSelect) {
+        Button(onClick = onNavigateToConceptSelect) {
             Text("Begin New Forge")
         }
 

@@ -2,7 +2,7 @@ package com.forgelegends.domain.model
 
 data class GameState(
     val currentRunId: String = "",
-    val activeWeaponFamily: WeaponFamily = WeaponFamily.RUNIC_GREATSWORD,
+    val activeConceptId: String = "",
     val sparks: Long = 0L,
     val sparksPerTap: Long = 1L,
     val forgeLevel: Int = 1,

@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -23,11 +24,12 @@ import java.util.Locale
 @Composable
 fun WeaponShowcaseGallery(
     entries: List<WeaponShowcaseEntry>,
+    conceptLookup: (String) -> Concept?,
     modifier: Modifier = Modifier
 ) {
     if (entries.isEmpty()) {
         Text(
-            text = "No legendary weapons forged yet...",
+            text = "No legendary creations forged yet...",
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = modifier.padding(32.dp)
@@ -40,13 +42,17 @@ fun WeaponShowcaseGallery(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(entries.reversed()) { entry ->
-            ShowcaseCard(entry)
+            ShowcaseCard(entry, conceptLookup)
         }
     }
 }
 
 @Composable
-private fun ShowcaseCard(entry: WeaponShowcaseEntry) {
+private fun ShowcaseCard(
+    entry: WeaponShowcaseEntry,
+    conceptLookup: (String) -> Concept?
+) {
+    val concept = conceptLookup(entry.conceptId)
     Card(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
@@ -62,7 +68,7 @@ private fun ShowcaseCard(entry: WeaponShowcaseEntry) {
         ) {
             Column {
                 Text(
-                    text = WeaponVisualRegistry.victoryLabel(entry.weaponFamily),
+                    text = concept?.name ?: entry.conceptId,
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.secondary
                 )
@@ -78,7 +84,7 @@ private fun ShowcaseCard(entry: WeaponShowcaseEntry) {
                 )
             }
             Text(
-                text = WeaponVisualRegistry.phaseEmoji(entry.weaponFamily, 7),
+                text = concept?.emoji ?: "\uD83C\uDFC6",
                 style = MaterialTheme.typography.displayLarge
             )
         }

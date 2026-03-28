@@ -33,10 +33,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import com.forgelegends.ui.components.PhaseImageProvider
 import com.forgelegends.ui.components.ShowcaseImageProvider
-import com.forgelegends.ui.components.WeaponVisualRegistry
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -44,6 +44,7 @@ import java.util.Locale
 @Composable
 fun ModelDetailScreen(
     entry: WeaponShowcaseEntry?,
+    concept: Concept?,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -60,8 +61,10 @@ fun ModelDetailScreen(
     }
 
     val context = LocalContext.current
-    val angleCount = ShowcaseImageProvider.angleCount(context, entry.weaponFamily)
-    val hasPhaseImages = PhaseImageProvider.hasPhaseImages(context, entry.weaponFamily)
+    val angleCount = ShowcaseImageProvider.angleCount(context, entry.conceptId)
+    val hasPhaseImages = PhaseImageProvider.hasPhaseImages(context, entry.conceptId)
+    val name = concept?.name ?: entry.conceptId
+    val emoji = concept?.emoji ?: "\uD83C\uDFC6"
 
     Column(
         modifier = modifier
@@ -75,7 +78,7 @@ fun ModelDetailScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = WeaponVisualRegistry.victoryLabel(entry.weaponFamily),
+                text = name,
                 style = MaterialTheme.typography.titleLarge,
                 color = MaterialTheme.colorScheme.secondary
             )
@@ -87,18 +90,15 @@ fun ModelDetailScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         if (angleCount > 0) {
-            MultiAngleViewer(entry = entry, angleCount = angleCount)
+            MultiAngleViewer(conceptId = entry.conceptId, angleCount = angleCount)
         } else if (hasPhaseImages) {
             PhaseImageProvider.PhaseImage(
-                family = entry.weaponFamily,
+                conceptId = entry.conceptId,
                 phase = 6,
                 modifier = Modifier.size(280.dp)
             )
         } else {
-            Text(
-                text = WeaponVisualRegistry.phaseEmoji(entry.weaponFamily, 7),
-                fontSize = 120.sp
-            )
+            Text(text = emoji, fontSize = 120.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -125,7 +125,7 @@ fun ModelDetailScreen(
 
 @Composable
 private fun MultiAngleViewer(
-    entry: WeaponShowcaseEntry,
+    conceptId: String,
     angleCount: Int
 ) {
     var currentAngle by remember { mutableIntStateOf(0) }
@@ -159,7 +159,7 @@ private fun MultiAngleViewer(
                 label = "angle_rotation"
             ) { angle ->
                 ShowcaseImageProvider.AngleImage(
-                    family = entry.weaponFamily,
+                    conceptId = conceptId,
                     angle = angle,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -168,7 +168,6 @@ private fun MultiAngleViewer(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // Dot indicator
         Row(
             horizontalArrangement = Arrangement.spacedBy(6.dp),
             verticalAlignment = Alignment.CenterVertically

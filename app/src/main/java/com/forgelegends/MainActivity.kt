@@ -11,15 +11,15 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.forgelegends.domain.model.WeaponFamily
 import com.forgelegends.presentation.GameViewModel
 import com.forgelegends.ui.navigation.NavRoutes
 import com.forgelegends.ui.screen.CompletionScreen
+import com.forgelegends.ui.screen.ConceptSelectScreen
 import com.forgelegends.ui.screen.ForgeScreen
 import com.forgelegends.ui.screen.ModelDetailScreen
 import com.forgelegends.ui.screen.ShowcaseScreen
+import com.forgelegends.ui.screen.SplashScreen
 import com.forgelegends.ui.screen.WeaponProgressScreen
-import com.forgelegends.ui.screen.WeaponSelectScreen
 import com.forgelegends.ui.screen.WorkbenchScreen
 import com.forgelegends.ui.theme.ForgeLegendTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -35,14 +35,33 @@ class MainActivity : ComponentActivity() {
                 val viewModel: GameViewModel = hiltViewModel()
                 val gameState by viewModel.gameState.collectAsState()
                 val showcaseEntries by viewModel.showcaseEntries.collectAsState()
+                val allConcepts by viewModel.allConcepts.collectAsState()
+                val activeConcept = viewModel.getActiveConcept()
+                val conceptLookup = { id: String -> viewModel.conceptRegistry.getById(id) }
 
                 NavHost(
                     navController = navController,
-                    startDestination = NavRoutes.FORGE
+                    startDestination = NavRoutes.SPLASH
                 ) {
+                    composable(NavRoutes.SPLASH) {
+                        SplashScreen(
+                            onTimeout = {
+                                val dest = if (gameState.activeConceptId.isEmpty()) {
+                                    NavRoutes.CONCEPT_SELECT
+                                } else {
+                                    NavRoutes.FORGE
+                                }
+                                navController.navigate(dest) {
+                                    popUpTo(NavRoutes.SPLASH) { inclusive = true }
+                                }
+                            }
+                        )
+                    }
+
                     composable(NavRoutes.FORGE) {
                         ForgeScreen(
                             gameState = gameState,
+                            concept = activeConcept,
                             onTap = viewModel::onTap,
                             onNavigateToWorkbench = {
                                 navController.navigate(NavRoutes.WORKBENCH)
@@ -72,6 +91,7 @@ class MainActivity : ComponentActivity() {
                     composable(NavRoutes.WEAPON_PROGRESS) {
                         WeaponProgressScreen(
                             gameState = gameState,
+                            concept = activeConcept,
                             onBack = { navController.popBackStack() },
                             onNavigateToCompletion = {
                                 navController.navigate(NavRoutes.COMPLETION)
@@ -82,9 +102,10 @@ class MainActivity : ComponentActivity() {
                     composable(NavRoutes.COMPLETION) {
                         CompletionScreen(
                             gameState = gameState,
-                            onNavigateToWeaponSelect = {
+                            concept = activeConcept,
+                            onNavigateToConceptSelect = {
                                 viewModel.archiveCurrentRun()
-                                navController.navigate(NavRoutes.WEAPON_SELECT) {
+                                navController.navigate(NavRoutes.CONCEPT_SELECT) {
                                     popUpTo(NavRoutes.FORGE) { inclusive = false }
                                 }
                             },
@@ -97,6 +118,7 @@ class MainActivity : ComponentActivity() {
                     composable(NavRoutes.SHOWCASE) {
                         ShowcaseScreen(
                             entries = showcaseEntries,
+                            conceptLookup = conceptLookup,
                             onEntryClick = { entryId ->
                                 navController.navigate(NavRoutes.modelDetail(entryId))
                             },
@@ -110,17 +132,31 @@ class MainActivity : ComponentActivity() {
                     ) { backStackEntry ->
                         val entryId = backStackEntry.arguments?.getString("entryId")
                         val entry = showcaseEntries.find { it.id == entryId }
+                        val entryConcept = entry?.let { conceptLookup(it.conceptId) }
                         ModelDetailScreen(
                             entry = entry,
+                            concept = entryConcept,
                             onBack = { navController.popBackStack() }
                         )
                     }
 
-                    composable(NavRoutes.WEAPON_SELECT) {
-                        WeaponSelectScreen(
+                    composable(NavRoutes.CONCEPT_SELECT) {
+                        ConceptSelectScreen(
+                            concepts = allConcepts,
                             showcaseEntries = showcaseEntries,
-                            onSelectWeapon = { family ->
-                                viewModel.startNewRun(family)
+                            onSelectConcept = { conceptId ->
+                                viewModel.startNewRun(conceptId)
+                                navController.navigate(NavRoutes.FORGE) {
+                                    popUpTo(NavRoutes.FORGE) { inclusive = true }
+                                }
+                            },
+                            onAddCustomConcept = { name ->
+                                viewModel.addCustomConcept(name)
+                                val conceptId = name.trim().lowercase()
+                                    .replace(Regex("[^a-z0-9]+"), "_")
+                                    .trim('_')
+                                    .take(40)
+                                viewModel.startNewRun(conceptId)
                                 navController.navigate(NavRoutes.FORGE) {
                                     popUpTo(NavRoutes.FORGE) { inclusive = true }
                                 }

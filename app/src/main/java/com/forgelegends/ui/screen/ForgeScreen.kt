@@ -19,13 +19,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.GameState
 import com.forgelegends.ui.components.PhaseImageProvider
-import com.forgelegends.ui.components.WeaponVisualRegistry
 
 @Composable
 fun ForgeScreen(
     gameState: GameState,
+    concept: Concept?,
     onTap: () -> Unit,
     onNavigateToWorkbench: () -> Unit,
     onNavigateToProgress: () -> Unit,
@@ -39,6 +40,10 @@ fun ForgeScreen(
         }
     }
 
+    val conceptId = gameState.activeConceptId
+    val emoji = concept?.emoji ?: "\u2692\uFE0F"
+    val name = concept?.name ?: conceptId
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -47,25 +52,22 @@ fun ForgeScreen(
         verticalArrangement = Arrangement.Center
     ) {
         val context = LocalContext.current
-        val hasImages = PhaseImageProvider.hasPhaseImages(context, gameState.activeWeaponFamily)
+        val hasImages = PhaseImageProvider.hasPhaseImages(context, conceptId)
 
         if (hasImages) {
             PhaseImageProvider.PhaseImage(
-                family = gameState.activeWeaponFamily,
+                conceptId = conceptId,
                 phase = gameState.currentPhase,
                 modifier = Modifier.size(200.dp)
             )
         } else {
-            Text(
-                text = WeaponVisualRegistry.phaseEmoji(gameState.activeWeaponFamily, gameState.currentPhase),
-                fontSize = 72.sp
-            )
+            Text(text = emoji, fontSize = 72.sp)
         }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = WeaponVisualRegistry.phaseLabel(gameState.activeWeaponFamily, gameState.currentPhase),
+            text = "$name - Phase ${gameState.currentPhase}",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.secondary
         )
@@ -101,10 +103,7 @@ fun ForgeScreen(
                 containerColor = MaterialTheme.colorScheme.primary
             )
         ) {
-            Text(
-                text = "\uD83D\uDD28",
-                fontSize = 48.sp
-            )
+            Text(text = "\uD83D\uDD28", fontSize = 48.sp)
         }
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -116,7 +115,7 @@ fun ForgeScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Button(onClick = onNavigateToProgress) {
-            Text("Weapon Progress")
+            Text("Progress")
         }
 
         Spacer(modifier = Modifier.height(8.dp))

@@ -9,18 +9,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.forgelegends.domain.model.WeaponFamily
 
 object PhaseImageProvider {
 
-    fun phaseImagePath(family: WeaponFamily, phase: Int): String {
-        val familyDir = family.name.lowercase()
-        return "phases/$familyDir/${familyDir}_phase${phase.coerceIn(1, 6)}.png"
-    }
+    fun phaseImagePath(conceptId: String, phase: Int): String =
+        "concepts/$conceptId/phase_${phase.coerceIn(1, 6)}.png"
 
-    fun hasPhaseImages(context: Context, family: WeaponFamily): Boolean {
+    fun hasPhaseImages(context: Context, conceptId: String): Boolean {
         return try {
-            context.assets.open(phaseImagePath(family, 1)).close()
+            context.assets.open(phaseImagePath(conceptId, 1)).close()
             true
         } catch (_: Exception) {
             false
@@ -29,15 +26,15 @@ object PhaseImageProvider {
 
     @Composable
     fun PhaseImage(
-        family: WeaponFamily,
+        conceptId: String,
         phase: Int,
         modifier: Modifier = Modifier,
         contentScale: ContentScale = ContentScale.Fit
     ) {
         val context = LocalContext.current
-        val bitmap = remember(family, phase) {
+        val bitmap = remember(conceptId, phase) {
             try {
-                context.assets.open(phaseImagePath(family, phase)).use {
+                context.assets.open(phaseImagePath(conceptId, phase)).use {
                     BitmapFactory.decodeStream(it)
                 }
             } catch (_: Exception) {

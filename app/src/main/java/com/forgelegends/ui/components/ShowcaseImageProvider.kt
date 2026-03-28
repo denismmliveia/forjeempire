@@ -9,20 +9,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import com.forgelegends.domain.model.WeaponFamily
 
 object ShowcaseImageProvider {
 
-    private fun anglePath(family: WeaponFamily, angle: Int): String {
-        val familyDir = family.name.lowercase()
-        return "showcase/$familyDir/angle_$angle.png"
-    }
+    private fun anglePath(conceptId: String, angle: Int): String =
+        "concepts/$conceptId/angle_$angle.png"
 
-    fun angleCount(context: Context, family: WeaponFamily): Int {
+    fun angleCount(context: Context, conceptId: String): Int {
         var count = 0
         while (count < 24) {
             try {
-                context.assets.open(anglePath(family, count)).close()
+                context.assets.open(anglePath(conceptId, count)).close()
                 count++
             } catch (_: Exception) {
                 break
@@ -33,15 +30,15 @@ object ShowcaseImageProvider {
 
     @Composable
     fun AngleImage(
-        family: WeaponFamily,
+        conceptId: String,
         angle: Int,
         modifier: Modifier = Modifier,
         contentScale: ContentScale = ContentScale.Fit
     ) {
         val context = LocalContext.current
-        val bitmap = remember(family, angle) {
+        val bitmap = remember(conceptId, angle) {
             try {
-                context.assets.open(anglePath(family, angle)).use {
+                context.assets.open(anglePath(conceptId, angle)).use {
                     BitmapFactory.decodeStream(it)
                 }
             } catch (_: Exception) {
