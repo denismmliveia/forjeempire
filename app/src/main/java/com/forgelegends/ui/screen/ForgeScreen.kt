@@ -15,8 +15,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.forgelegends.domain.model.GameState
+import com.forgelegends.ui.components.PhaseImageProvider
 import com.forgelegends.ui.components.WeaponVisualRegistry
 
 @Composable
@@ -34,10 +36,21 @@ fun ForgeScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = WeaponVisualRegistry.phaseEmoji(gameState.activeWeaponFamily, gameState.currentPhase),
-            fontSize = 72.sp
-        )
+        val context = LocalContext.current
+        val hasImages = PhaseImageProvider.hasPhaseImages(context, gameState.activeWeaponFamily)
+
+        if (hasImages) {
+            PhaseImageProvider.PhaseImage(
+                family = gameState.activeWeaponFamily,
+                phase = gameState.currentPhase,
+                modifier = Modifier.size(200.dp)
+            )
+        } else {
+            Text(
+                text = WeaponVisualRegistry.phaseEmoji(gameState.activeWeaponFamily, gameState.currentPhase),
+                fontSize = 72.sp
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 

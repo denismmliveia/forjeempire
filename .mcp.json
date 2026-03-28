@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "3d-pipeline": {
+      "command": "python",
+      "args": ["C:\\Users\\denis\\Documents\\Proyectos\\3_TapGames\\mcp-3d-pipeline\\server.py"],
+      "env": {}
+    }
+  }
+}

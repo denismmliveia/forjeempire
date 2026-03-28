@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,8 +17,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.sp
 import com.forgelegends.domain.model.GameState
+import com.forgelegends.ui.components.PhaseImageProvider
 import com.forgelegends.ui.components.WeaponVisualRegistry
 
 @Composable
@@ -51,6 +54,9 @@ fun WeaponProgressScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         // Phase progression display
+        val context = LocalContext.current
+        val hasImages = PhaseImageProvider.hasPhaseImages(context, gameState.activeWeaponFamily)
+
         for (phase in 1..gameState.maxPhase) {
             val completed = phase < gameState.currentPhase
             val current = phase == gameState.currentPhase
@@ -64,7 +70,15 @@ fun WeaponProgressScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(text = emoji, fontSize = 28.sp)
+                if (hasImages) {
+                    PhaseImageProvider.PhaseImage(
+                        family = gameState.activeWeaponFamily,
+                        phase = phase,
+                        modifier = Modifier.size(48.dp)
+                    )
+                } else {
+                    Text(text = emoji, fontSize = 28.sp)
+                }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = label,
