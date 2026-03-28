@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.forgelegends.data.repository.GameRepository
 import com.forgelegends.data.repository.WeaponShowcaseRepository
 import com.forgelegends.domain.model.GameState
+import com.forgelegends.domain.model.WeaponFamily
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import com.forgelegends.domain.model.defaultUpgrades
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -113,13 +114,31 @@ class GameViewModel @Inject constructor(
         }
     }
 
-    fun startNewRun() {
+    fun archiveAndStartNewRun(family: WeaponFamily) {
+        val current = _gameState.value
+        if (!current.runCompleted) return
+
+        archiveCurrentRun()
+
+        val newState = GameState(
+            currentRunId = UUID.randomUUID().toString(),
+            activeWeaponFamily = family,
+            runNumber = current.runNumber + 1,
+            permanentBonus = current.permanentBonus + 0.1,
+            upgrades = defaultUpgrades()
+        )
+
+        _gameState.value = newState
+        persistState(newState)
+    }
+
+    fun startNewRun(family: WeaponFamily) {
         val current = _gameState.value
         if (!current.runCompleted) return
 
         val newState = GameState(
             currentRunId = UUID.randomUUID().toString(),
-            activeWeaponFamily = current.activeWeaponFamily.next(),
+            activeWeaponFamily = family,
             runNumber = current.runNumber + 1,
             permanentBonus = current.permanentBonus + 0.1,
             upgrades = defaultUpgrades()

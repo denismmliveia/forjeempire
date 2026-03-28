@@ -6,14 +6,20 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.forgelegends.domain.model.WeaponFamily
 import com.forgelegends.presentation.GameViewModel
 import com.forgelegends.ui.navigation.NavRoutes
 import com.forgelegends.ui.screen.CompletionScreen
 import com.forgelegends.ui.screen.ForgeScreen
+import com.forgelegends.ui.screen.ModelDetailScreen
+import com.forgelegends.ui.screen.ShowcaseScreen
 import com.forgelegends.ui.screen.WeaponProgressScreen
+import com.forgelegends.ui.screen.WeaponSelectScreen
 import com.forgelegends.ui.screen.WorkbenchScreen
 import com.forgelegends.ui.theme.ForgeLegendTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -43,6 +49,14 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToProgress = {
                                 navController.navigate(NavRoutes.WEAPON_PROGRESS)
+                            },
+                            onNavigateToCompletion = {
+                                navController.navigate(NavRoutes.COMPLETION) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToShowcase = {
+                                navController.navigate(NavRoutes.SHOWCASE)
                             }
                         )
                     }
@@ -68,14 +82,48 @@ class MainActivity : ComponentActivity() {
                     composable(NavRoutes.COMPLETION) {
                         CompletionScreen(
                             gameState = gameState,
-                            showcaseEntries = showcaseEntries,
-                            onArchiveAndNewRun = {
+                            onNavigateToWeaponSelect = {
                                 viewModel.archiveCurrentRun()
-                                viewModel.startNewRun()
-                                navController.popBackStack(
-                                    NavRoutes.FORGE,
-                                    inclusive = false
-                                )
+                                navController.navigate(NavRoutes.WEAPON_SELECT) {
+                                    popUpTo(NavRoutes.FORGE) { inclusive = false }
+                                }
+                            },
+                            onNavigateToShowcase = {
+                                navController.navigate(NavRoutes.SHOWCASE)
+                            }
+                        )
+                    }
+
+                    composable(NavRoutes.SHOWCASE) {
+                        ShowcaseScreen(
+                            entries = showcaseEntries,
+                            onEntryClick = { entryId ->
+                                navController.navigate(NavRoutes.modelDetail(entryId))
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = NavRoutes.MODEL_DETAIL,
+                        arguments = listOf(navArgument("entryId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val entryId = backStackEntry.arguments?.getString("entryId")
+                        val entry = showcaseEntries.find { it.id == entryId }
+                        ModelDetailScreen(
+                            entry = entry,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(NavRoutes.WEAPON_SELECT) {
+                        WeaponSelectScreen(
+                            showcaseEntries = showcaseEntries,
+                            onSelectWeapon = { family ->
+                                viewModel.startNewRun(family)
+                                navController.navigate(NavRoutes.FORGE) {
+                                    popUpTo(NavRoutes.FORGE) { inclusive = true }
+                                }
                             }
                         )
                     }

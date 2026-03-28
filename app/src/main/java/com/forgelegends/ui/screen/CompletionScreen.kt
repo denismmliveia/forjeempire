@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -16,22 +17,21 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.forgelegends.domain.model.GameState
-import com.forgelegends.domain.model.WeaponShowcaseEntry
-import com.forgelegends.ui.components.WeaponShowcaseGallery
 import com.forgelegends.ui.components.WeaponVisualRegistry
 
 @Composable
 fun CompletionScreen(
     gameState: GameState,
-    showcaseEntries: List<WeaponShowcaseEntry>,
-    onArchiveAndNewRun: () -> Unit,
+    onNavigateToWeaponSelect: () -> Unit,
+    onNavigateToShowcase: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = "\uD83C\uDFC6",
@@ -64,25 +64,16 @@ fun CompletionScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
-        Button(onClick = onArchiveAndNewRun) {
+        Button(onClick = onNavigateToWeaponSelect) {
             Text("Begin New Forge")
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
-
-        Text(
-            text = "Legendary Collection",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.secondary
-        )
-
         Spacer(modifier = Modifier.height(12.dp))
 
-        WeaponShowcaseGallery(
-            entries = showcaseEntries,
-            modifier = Modifier.weight(1f)
-        )
+        OutlinedButton(onClick = onNavigateToShowcase) {
+            Text("\uD83C\uDFC6 View Collection")
+        }
     }
 }

@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.forgelegends.domain.model.GameState
 import com.forgelegends.ui.components.PhaseImageProvider
@@ -27,8 +29,16 @@ fun ForgeScreen(
     onTap: () -> Unit,
     onNavigateToWorkbench: () -> Unit,
     onNavigateToProgress: () -> Unit,
+    onNavigateToCompletion: () -> Unit,
+    onNavigateToShowcase: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    LaunchedEffect(gameState.runCompleted) {
+        if (gameState.runCompleted) {
+            onNavigateToCompletion()
+        }
+    }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -107,6 +117,12 @@ fun ForgeScreen(
 
         Button(onClick = onNavigateToProgress) {
             Text("Weapon Progress")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedButton(onClick = onNavigateToShowcase) {
+            Text("\uD83C\uDFC6 Legendary Collection")
         }
     }
 }
