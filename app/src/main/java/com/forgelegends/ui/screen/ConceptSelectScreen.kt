@@ -1,6 +1,8 @@
 package com.forgelegends.ui.screen
 
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,6 +20,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -40,21 +43,29 @@ import com.forgelegends.ui.components.PhaseImageProvider
 
 @Composable
 fun ConceptSelectScreen(
-    concepts: List<Concept>,
+    nextConcept: Concept?,
+    forgeProgress: Pair<Int, Int>,
     showcaseEntries: List<WeaponShowcaseEntry>,
-    onSelectConcept: (String) -> Unit,
-    onAddCustomConcept: (String) -> Unit,
+    onForgeNext: (String) -> Unit,
+    onTrySecretCode: (String) -> Concept?,
+    onForgeSecret: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var newConceptText by remember { mutableStateOf("") }
+    var secretCodeText by remember { mutableStateOf("") }
+    var secretError by remember { mutableStateOf(false) }
     val keyboardController = LocalSoftwareKeyboardController.current
 
-    fun submitNewConcept() {
-        val trimmed = newConceptText.trim()
-        if (trimmed.isNotEmpty()) {
-            onAddCustomConcept(trimmed)
-            newConceptText = ""
+    fun submitSecretCode() {
+        val trimmed = secretCodeText.trim()
+        if (trimmed.isEmpty()) return
+        val concept = onTrySecretCode(trimmed)
+        if (concept != null) {
+            secretError = false
+            secretCodeText = ""
             keyboardController?.hide()
+            onForgeSecret(concept.id)
+        } else {
+            secretError = true
         }
     }
 
@@ -66,80 +77,112 @@ fun ConceptSelectScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "Choose Your Next Forge",
+            text = "Your Next Forge",
             style = MaterialTheme.typography.headlineMedium,
             color = MaterialTheme.colorScheme.secondary
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
-        Text(
-            text = "Enter any concept to forge",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        // Progress indicator
+        val (completed, total) = forgeProgress
+        if (total > 0) {
+            Text(
+                text = "$completed / $total Forged",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            LinearProgressIndicator(
+                progress = { if (total > 0) completed.toFloat() / total else 0f },
+                modifier = Modifier.fillMaxWidth(),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            )
+        }
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // New concept input
+        if (nextConcept != null) {
+            // Next concept card
+            NextConceptCard(concept = nextConcept)
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            Button(
+                onClick = { onForgeNext(nextConcept.id) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("\u2692\uFE0F Forge", style = MaterialTheme.typography.titleMedium)
+            }
+        } else {
+            // All concepts forged
+            Text(
+                text = "\uD83C\uDFC6",
+                fontSize = 64.sp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "All Concepts Forged!",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "You have mastered every forge in the queue.\nTry entering a secret code to unlock hidden designs.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        HorizontalDivider()
+
+        Spacer(modifier = Modifier.height(20.dp))
+
+        Text(
+            text = "Secret Code",
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedTextField(
-                value = newConceptText,
-                onValueChange = { newConceptText = it },
-                label = { Text("New concept...") },
-                placeholder = { Text("e.g. a dragon, a robot, a ninja...") },
+                value = secretCodeText,
+                onValueChange = {
+                    secretCodeText = it
+                    secretError = false
+                },
+                label = { Text("Enter secret code...") },
                 singleLine = true,
+                isError = secretError,
+                supportingText = if (secretError) {
+                    { Text("Invalid code") }
+                } else null,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { submitNewConcept() }),
+                keyboardActions = KeyboardActions(onDone = { submitSecretCode() }),
                 modifier = Modifier.weight(1f)
             )
             Button(
-                onClick = { submitNewConcept() },
-                enabled = newConceptText.trim().isNotEmpty()
+                onClick = { submitSecretCode() },
+                enabled = secretCodeText.trim().isNotEmpty()
             ) {
-                Text("\u2692\uFE0F Forge")
-            }
-        }
-
-        if (concepts.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-
-            HorizontalDivider()
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "Or pick an existing concept",
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val forgedIds = showcaseEntries.map { it.conceptId }.toSet()
-
-            concepts.forEach { concept ->
-                ConceptCard(
-                    concept = concept,
-                    forged = concept.id in forgedIds,
-                    onClick = { onSelectConcept(concept.id) }
-                )
-                Spacer(modifier = Modifier.height(16.dp))
+                Text("\uD83D\uDD13 Unlock")
             }
         }
     }
 }
 
 @Composable
-private fun ConceptCard(
-    concept: Concept,
-    forged: Boolean,
-    onClick: () -> Unit
-) {
+private fun NextConceptCard(concept: Concept) {
     val context = LocalContext.current
     val hasImages = PhaseImageProvider.hasPhaseImages(context, concept.id)
 
@@ -147,13 +190,11 @@ private fun ConceptCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
-                .padding(20.dp)
+                .padding(24.dp)
                 .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -161,36 +202,28 @@ private fun ConceptCard(
                 PhaseImageProvider.PhaseImage(
                     conceptId = concept.id,
                     phase = 6,
-                    modifier = Modifier.size(100.dp)
+                    modifier = Modifier.size(140.dp)
                 )
             } else {
-                Text(text = concept.emoji, fontSize = 56.sp)
+                Text(text = concept.emoji, fontSize = 72.sp)
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = concept.name,
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.secondary,
                 textAlign = TextAlign.Center
             )
 
             if (concept.description.isNotEmpty()) {
-                Text(
-                    text = concept.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
-                )
-            }
-
-            if (forged) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "\u2705 Previously Forged",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary
+                    text = concept.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center
                 )
             }
         }

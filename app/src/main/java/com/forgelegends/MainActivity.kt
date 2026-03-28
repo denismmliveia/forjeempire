@@ -35,7 +35,8 @@ class MainActivity : ComponentActivity() {
                 val viewModel: GameViewModel = hiltViewModel()
                 val gameState by viewModel.gameState.collectAsState()
                 val showcaseEntries by viewModel.showcaseEntries.collectAsState()
-                val allConcepts by viewModel.allConcepts.collectAsState()
+                val nextConcept by viewModel.nextConcept.collectAsState()
+                val forgeProgress by viewModel.forgeProgress.collectAsState()
                 val activeConcept = viewModel.getActiveConcept()
                 val conceptLookup = { id: String -> viewModel.conceptRegistry.getById(id) }
 
@@ -142,21 +143,18 @@ class MainActivity : ComponentActivity() {
 
                     composable(NavRoutes.CONCEPT_SELECT) {
                         ConceptSelectScreen(
-                            concepts = allConcepts,
+                            nextConcept = nextConcept,
+                            forgeProgress = forgeProgress,
                             showcaseEntries = showcaseEntries,
-                            onSelectConcept = { conceptId ->
+                            onForgeNext = { conceptId ->
                                 viewModel.startNewRun(conceptId)
                                 navController.navigate(NavRoutes.FORGE) {
                                     popUpTo(NavRoutes.FORGE) { inclusive = true }
                                 }
                             },
-                            onAddCustomConcept = { name ->
-                                viewModel.addCustomConcept(name)
-                                val conceptId = name.trim().lowercase()
-                                    .replace(Regex("[^a-z0-9]+"), "_")
-                                    .trim('_')
-                                    .take(40)
-                                viewModel.startNewRun(conceptId)
+                            onTrySecretCode = { code -> viewModel.trySecretCode(code) },
+                            onForgeSecret = { conceptId ->
+                                viewModel.startSecretRun(conceptId)
                                 navController.navigate(NavRoutes.FORGE) {
                                     popUpTo(NavRoutes.FORGE) { inclusive = true }
                                 }

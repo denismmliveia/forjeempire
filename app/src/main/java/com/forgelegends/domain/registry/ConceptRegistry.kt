@@ -13,7 +13,13 @@ class ConceptRegistry @Inject constructor(
 ) {
     val concepts: List<Concept> by lazy { discoverConcepts() }
 
+    val normalConcepts: List<Concept> by lazy { concepts.filter { !it.secret } }
+    val secretConcepts: List<Concept> by lazy { concepts.filter { it.secret } }
+
     fun getById(id: String): Concept? = concepts.find { it.id == id }
+
+    fun findBySecretWord(word: String): Concept? =
+        secretConcepts.find { it.secretWord.equals(word.trim(), ignoreCase = true) }
 
     fun getByIdOrFirst(id: String): Concept =
         getById(id) ?: concepts.firstOrNull() ?: Concept(
@@ -71,7 +77,9 @@ class ConceptRegistry @Inject constructor(
                     emoji = obj.getString("emoji"),
                     description = obj.optString("description", ""),
                     phaseCount = phaseCount,
-                    angleCount = angles
+                    angleCount = angles,
+                    secret = obj.optBoolean("secret", false),
+                    secretWord = obj.optString("secretWord", "")
                 )
             } catch (_: Exception) {
                 null

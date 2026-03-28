@@ -6,5 +6,7 @@ data class Concept(
     val emoji: String,
     val description: String,
     val phaseCount: Int = 6,
-    val angleCount: Int = 0
+    val angleCount: Int = 0,
+    val secret: Boolean = false,
+    val secretWord: String = ""
 )

@@ -2,8 +2,8 @@ package com.forgelegends.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.forgelegends.data.repository.CustomConceptRepository
 import com.forgelegends.data.repository.GameRepository
+import com.forgelegends.data.repository.PlayerProgressRepository
 import com.forgelegends.data.repository.WeaponShowcaseRepository
 import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.GameState
@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -24,24 +26,30 @@ import javax.inject.Inject
 class GameViewModel @Inject constructor(
     private val gameRepository: GameRepository,
     private val showcaseRepository: WeaponShowcaseRepository,
-    private val customConceptRepository: CustomConceptRepository,
+    private val playerProgressRepository: PlayerProgressRepository,
     val conceptRegistry: ConceptRegistry
 ) : ViewModel() {
 
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
 
-    private val _customConcepts = MutableStateFlow<List<Concept>>(emptyList())
+    private val _playerSeed = MutableStateFlow(0L)
+    private val _queuePosition = MutableStateFlow(0)
 
-    val allConcepts: StateFlow<List<Concept>> = kotlinx.coroutines.flow.combine(
-        kotlinx.coroutines.flow.flowOf(conceptRegistry.concepts),
-        _customConcepts
-    ) { assets, custom ->
-        assets + custom.filter { c -> assets.none { it.id == c.id } }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), conceptRegistry.concepts)
+    val shuffledQueue: StateFlow<List<Concept>> = _playerSeed.map { seed ->
+        if (seed == 0L) return@map emptyList()
+        val normal = conceptRegistry.normalConcepts.toMutableList()
+        normal.shuffle(java.util.Random(seed))
+        normal
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // Keep backward-compat property
-    val concepts: List<Concept> get() = allConcepts.value
+    val nextConcept: StateFlow<Concept?> = combine(shuffledQueue, _queuePosition) { queue, pos ->
+        queue.getOrNull(pos)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val forgeProgress: StateFlow<Pair<Int, Int>> = combine(shuffledQueue, _queuePosition) { queue, pos ->
+        pos to queue.size
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0 to 0)
 
     val showcaseEntries: StateFlow<List<WeaponShowcaseEntry>> =
         showcaseRepository.entries.stateIn(
@@ -54,6 +62,9 @@ class GameViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            playerProgressRepository.initSeedIfAbsent()
+        }
+        viewModelScope.launch {
             gameRepository.gameState.collect { saved ->
                 val state = if (saved.currentRunId.isEmpty()) {
                     saved.copy(currentRunId = UUID.randomUUID().toString())
@@ -64,30 +75,25 @@ class GameViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            customConceptRepository.concepts.collect { list ->
-                _customConcepts.value = list
-            }
+            playerProgressRepository.playerSeed.collect { _playerSeed.value = it }
         }
-    }
-
-    fun addCustomConcept(name: String) {
-        val id = name.trim().lowercase()
-            .replace(Regex("[^a-z0-9]+"), "_")
-            .trim('_')
-            .take(40)
-        val concept = Concept(
-            id = id,
-            name = name.trim(),
-            emoji = "\u2692\uFE0F",
-            description = ""
-        )
         viewModelScope.launch {
-            customConceptRepository.addConcept(concept)
+            playerProgressRepository.queuePosition.collect { _queuePosition.value = it }
         }
     }
 
     fun getActiveConcept(): Concept? =
         conceptRegistry.getById(_gameState.value.activeConceptId)
+
+    fun trySecretCode(code: String): Concept? =
+        conceptRegistry.findBySecretWord(code)
+
+    fun startSecretRun(conceptId: String) {
+        viewModelScope.launch {
+            playerProgressRepository.addUnlockedSecret(conceptId)
+        }
+        startNewRun(conceptId)
+    }
 
     fun onTap() {
         val current = _gameState.value
@@ -152,24 +158,12 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             showcaseRepository.addIfAbsent(entry)
         }
-    }
 
-    fun archiveAndStartNewRun(conceptId: String) {
-        val current = _gameState.value
-        if (!current.runCompleted) return
-
-        archiveCurrentRun()
-
-        val newState = GameState(
-            currentRunId = UUID.randomUUID().toString(),
-            activeConceptId = conceptId,
-            runNumber = current.runNumber + 1,
-            permanentBonus = current.permanentBonus + 0.1,
-            upgrades = defaultUpgrades()
-        )
-
-        _gameState.value = newState
-        persistState(newState)
+        // Advance queue only if the completed concept was a normal (non-secret) one
+        val completedConcept = conceptRegistry.getById(current.activeConceptId)
+        if (completedConcept != null && !completedConcept.secret) {
+            viewModelScope.launch { playerProgressRepository.advanceQueue() }
+        }
     }
 
     fun startNewRun(conceptId: String) {
