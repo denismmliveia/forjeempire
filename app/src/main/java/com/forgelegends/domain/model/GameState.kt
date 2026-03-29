@@ -24,30 +24,30 @@ data class GameState(
 
 fun defaultUpgrades(): List<Upgrade> = listOf(
     Upgrade(
-        id = "furnace_temp",
-        name = "Furnace Temperature",
-        description = "Hotter flames, better steel",
+        id = "emitter_power",
+        name = "Emitter Power",
+        description = "Stronger emitters, faster projection",
         baseCost = 10,
         multiplier = 1.5
     ),
     Upgrade(
-        id = "hammer_weight",
-        name = "Hammer Weight",
-        description = "Heavier strikes, faster shaping",
+        id = "lens_density",
+        name = "Lens Density",
+        description = "Denser lenses, sharper layers",
         baseCost = 25,
         multiplier = 2.0
     ),
     Upgrade(
-        id = "metal_quality",
-        name = "Metal Quality",
-        description = "Purer ore, stronger weapons",
+        id = "photon_purity",
+        name = "Photon Purity",
+        description = "Purer photons, cleaner holograms",
         baseCost = 50,
         multiplier = 3.0
     ),
     Upgrade(
-        id = "smithing_technique",
-        name = "Smithing Technique",
-        description = "Ancient knowledge, masterful craft",
+        id = "holo_precision",
+        name = "Holo Precision",
+        description = "Advanced algorithms, masterful detail",
         baseCost = 100,
         multiplier = 5.0
     )

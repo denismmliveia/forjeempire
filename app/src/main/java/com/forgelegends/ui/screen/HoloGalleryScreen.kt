@@ -13,8 +13,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,67 +26,75 @@ import androidx.compose.ui.unit.sp
 import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import com.forgelegends.ui.components.PhaseImageProvider
+import com.forgelegends.ui.components.scifi.GlowText
+import com.forgelegends.ui.components.scifi.SciFiBackground
+import com.forgelegends.ui.components.scifi.SciFiCard
+import com.forgelegends.ui.theme.ElectricBlue
+import com.forgelegends.ui.theme.NeonCyan
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun ShowcaseScreen(
+fun HoloGalleryScreen(
     entries: List<WeaponShowcaseEntry>,
     conceptLookup: (String) -> Concept?,
     onEntryClick: (String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(24.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+    SciFiBackground {
+        Column(
+            modifier = modifier
+                .fillMaxSize()
+                .padding(24.dp)
         ) {
-            Text(
-                text = "\uD83C\uDFC6 Legendary Collection",
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.secondary
-            )
-            TextButton(onClick = onBack) {
-                Text("Back")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        if (entries.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "\u2694\uFE0F", fontSize = 64.sp)
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "No legendary creations forged yet.\nReturn to the forge and craft your first masterpiece!",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center
+                GlowText(
+                    text = "\uD83C\uDF10 Holo Gallery",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = ElectricBlue,
+                    glowRadius = 14f
                 )
+                TextButton(onClick = onBack) {
+                    Text("Back", color = NeonCyan)
+                }
             }
-        } else {
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(entries.reversed()) { entry ->
-                    ShowcaseCard(
-                        entry = entry,
-                        concept = conceptLookup(entry.conceptId),
-                        onClick = { onEntryClick(entry.id) }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (entries.isEmpty()) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(text = "\uD83D\uDD2E", fontSize = 64.sp)
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "No holograms projected yet.\nReturn to the forge and materialize your first creation!",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
                     )
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(entries.reversed()) { entry ->
+                        HoloGalleryCard(
+                            entry = entry,
+                            concept = conceptLookup(entry.conceptId),
+                            onClick = { onEntryClick(entry.id) }
+                        )
+                    }
                 }
             }
         }
@@ -96,7 +102,7 @@ fun ShowcaseScreen(
 }
 
 @Composable
-private fun ShowcaseCard(
+private fun HoloGalleryCard(
     entry: WeaponShowcaseEntry,
     concept: Concept?,
     onClick: () -> Unit
@@ -104,17 +110,14 @@ private fun ShowcaseCard(
     val context = LocalContext.current
     val hasImages = PhaseImageProvider.hasPhaseImages(context, entry.conceptId)
 
-    Card(
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        ),
+    SciFiCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
         ) {
             if (hasImages) {
                 PhaseImageProvider.PhaseImage(
@@ -124,7 +127,7 @@ private fun ShowcaseCard(
                 )
             } else {
                 Text(
-                    text = concept?.emoji ?: "\uD83C\uDFC6",
+                    text = concept?.emoji ?: "\uD83D\uDD2E",
                     fontSize = 48.sp
                 )
             }
@@ -134,32 +137,32 @@ private fun ShowcaseCard(
             Text(
                 text = concept?.name ?: entry.conceptId,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.secondary,
+                color = ElectricBlue,
                 textAlign = TextAlign.Center
             )
 
             Text(
-                text = "Run #${entry.runNumber}",
+                text = "Projection #${entry.runNumber}",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text(
-                text = formatDate(entry.completedAtEpochMillis),
+                text = formatGalleryDate(entry.completedAtEpochMillis),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Text(
-                text = "${entry.totalSparks} sparks",
+                text = "${entry.totalSparks} photons",
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary
+                color = NeonCyan
             )
         }
     }
 }
 
-private fun formatDate(epochMillis: Long): String {
+private fun formatGalleryDate(epochMillis: Long): String {
     val sdf = SimpleDateFormat("dd MMM yyyy", Locale.getDefault())
     return sdf.format(Date(epochMillis))
 }

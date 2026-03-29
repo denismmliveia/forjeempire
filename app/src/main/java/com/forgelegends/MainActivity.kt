@@ -13,14 +13,14 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.forgelegends.presentation.GameViewModel
 import com.forgelegends.ui.navigation.NavRoutes
+import com.forgelegends.ui.screen.BlueprintSelectScreen
 import com.forgelegends.ui.screen.CompletionScreen
-import com.forgelegends.ui.screen.ConceptSelectScreen
 import com.forgelegends.ui.screen.ForgeScreen
-import com.forgelegends.ui.screen.ModelDetailScreen
-import com.forgelegends.ui.screen.ShowcaseScreen
+import com.forgelegends.ui.screen.HoloGalleryScreen
+import com.forgelegends.ui.screen.HoloLabScreen
+import com.forgelegends.ui.screen.HoloViewerScreen
+import com.forgelegends.ui.screen.LayerProgressScreen
 import com.forgelegends.ui.screen.SplashScreen
-import com.forgelegends.ui.screen.WeaponProgressScreen
-import com.forgelegends.ui.screen.WorkbenchScreen
 import com.forgelegends.ui.theme.ForgeLegendTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -48,7 +48,7 @@ class MainActivity : ComponentActivity() {
                         SplashScreen(
                             onTimeout = {
                                 val dest = if (gameState.activeConceptId.isEmpty()) {
-                                    NavRoutes.CONCEPT_SELECT
+                                    NavRoutes.BLUEPRINT_SELECT
                                 } else {
                                     NavRoutes.FORGE
                                 }
@@ -65,10 +65,10 @@ class MainActivity : ComponentActivity() {
                             concept = activeConcept,
                             onTap = viewModel::onTap,
                             onNavigateToWorkbench = {
-                                navController.navigate(NavRoutes.WORKBENCH)
+                                navController.navigate(NavRoutes.HOLO_LAB)
                             },
                             onNavigateToProgress = {
-                                navController.navigate(NavRoutes.WEAPON_PROGRESS)
+                                navController.navigate(NavRoutes.LAYER_PROGRESS)
                             },
                             onNavigateToCompletion = {
                                 navController.navigate(NavRoutes.COMPLETION) {
@@ -76,21 +76,21 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onNavigateToShowcase = {
-                                navController.navigate(NavRoutes.SHOWCASE)
+                                navController.navigate(NavRoutes.HOLO_GALLERY)
                             }
                         )
                     }
 
-                    composable(NavRoutes.WORKBENCH) {
-                        WorkbenchScreen(
+                    composable(NavRoutes.HOLO_LAB) {
+                        HoloLabScreen(
                             gameState = gameState,
                             onPurchaseUpgrade = viewModel::purchaseUpgrade,
                             onBack = { navController.popBackStack() }
                         )
                     }
 
-                    composable(NavRoutes.WEAPON_PROGRESS) {
-                        WeaponProgressScreen(
+                    composable(NavRoutes.LAYER_PROGRESS) {
+                        LayerProgressScreen(
                             gameState = gameState,
                             concept = activeConcept,
                             onBack = { navController.popBackStack() },
@@ -106,43 +106,43 @@ class MainActivity : ComponentActivity() {
                             concept = activeConcept,
                             onNavigateToConceptSelect = {
                                 viewModel.archiveCurrentRun()
-                                navController.navigate(NavRoutes.CONCEPT_SELECT) {
+                                navController.navigate(NavRoutes.BLUEPRINT_SELECT) {
                                     popUpTo(NavRoutes.FORGE) { inclusive = false }
                                 }
                             },
                             onNavigateToShowcase = {
-                                navController.navigate(NavRoutes.SHOWCASE)
+                                navController.navigate(NavRoutes.HOLO_GALLERY)
                             }
                         )
                     }
 
-                    composable(NavRoutes.SHOWCASE) {
-                        ShowcaseScreen(
+                    composable(NavRoutes.HOLO_GALLERY) {
+                        HoloGalleryScreen(
                             entries = showcaseEntries,
                             conceptLookup = conceptLookup,
                             onEntryClick = { entryId ->
-                                navController.navigate(NavRoutes.modelDetail(entryId))
+                                navController.navigate(NavRoutes.holoViewer(entryId))
                             },
                             onBack = { navController.popBackStack() }
                         )
                     }
 
                     composable(
-                        route = NavRoutes.MODEL_DETAIL,
+                        route = NavRoutes.HOLO_VIEWER,
                         arguments = listOf(navArgument("entryId") { type = NavType.StringType })
                     ) { backStackEntry ->
                         val entryId = backStackEntry.arguments?.getString("entryId")
                         val entry = showcaseEntries.find { it.id == entryId }
                         val entryConcept = entry?.let { conceptLookup(it.conceptId) }
-                        ModelDetailScreen(
+                        HoloViewerScreen(
                             entry = entry,
                             concept = entryConcept,
                             onBack = { navController.popBackStack() }
                         )
                     }
 
-                    composable(NavRoutes.CONCEPT_SELECT) {
-                        ConceptSelectScreen(
+                    composable(NavRoutes.BLUEPRINT_SELECT) {
+                        BlueprintSelectScreen(
                             nextConcept = nextConcept,
                             forgeProgress = forgeProgress,
                             showcaseEntries = showcaseEntries,
