@@ -94,6 +94,10 @@ class GameViewModel @Inject constructor(
                 if (current.runCompleted || current.sparksPerSecond <= 0L) continue
                 val earned = (current.sparksPerSecond * current.permanentBonus).toLong()
                 val updated = addSparks(current, earned)
+                if (updated.currentPhase > current.currentPhase) {
+                    soundManager.playPhaseComplete()
+                }
+                soundManager.playPassiveTick()
                 _gameState.value = updated
                 // Persist every 5 seconds to reduce DataStore writes
                 persistCounter++

@@ -13,7 +13,7 @@ class SoundManager @Inject constructor(
     @ApplicationContext private val context: Context
 ) {
     private val soundPool: SoundPool = SoundPool.Builder()
-        .setMaxStreams(6)
+        .setMaxStreams(8)
         .setAudioAttributes(
             AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
@@ -26,6 +26,8 @@ class SoundManager @Inject constructor(
     private val purchaseSoundId: Int = soundPool.load(context, R.raw.sfx_purchase, 1)
     private val phaseCompleteSoundId: Int = soundPool.load(context, R.raw.sfx_phase_complete, 1)
     private val buttonClickSoundId: Int = soundPool.load(context, R.raw.sfx_button_click, 1)
+    private val errorSoundId: Int = soundPool.load(context, R.raw.sfx_error, 1)
+    private val passiveTickSoundId: Int = soundPool.load(context, R.raw.sfx_passive_tick, 1)
 
     fun playTap() {
         soundPool.play(tapSoundId, 0.5f, 0.5f, 1, 0, 1.0f)
@@ -41,6 +43,14 @@ class SoundManager @Inject constructor(
 
     fun playButtonClick() {
         soundPool.play(buttonClickSoundId, 0.4f, 0.4f, 0, 0, 1.0f)
+    }
+
+    fun playError() {
+        soundPool.play(errorSoundId, 0.6f, 0.6f, 1, 0, 1.0f)
+    }
+
+    fun playPassiveTick() {
+        soundPool.play(passiveTickSoundId, 0.15f, 0.15f, 0, 0, 1.0f)
     }
 
     fun release() {

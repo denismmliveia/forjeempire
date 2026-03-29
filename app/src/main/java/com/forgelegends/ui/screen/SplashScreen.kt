@@ -5,9 +5,12 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,8 +21,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.forgelegends.ui.components.scifi.GlowText
+import com.forgelegends.ui.components.scifi.LottieHoloScan
+import com.forgelegends.ui.components.scifi.PhotonParticleSystem
 import com.forgelegends.ui.components.scifi.SciFiBackground
 import com.forgelegends.ui.theme.GhostText
 import com.forgelegends.ui.theme.NeonCyan
@@ -33,7 +37,7 @@ fun SplashScreen(
 
     LaunchedEffect(Unit) {
         visible = true
-        delay(2000)
+        delay(2500)
         onTimeout()
     }
 
@@ -44,11 +48,20 @@ fun SplashScreen(
             indication = null
         ) { onTimeout() }
     ) {
-        Column(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+        // Particles behind everything
+        PhotonParticleSystem(
+            modifier = Modifier.fillMaxSize(),
+            particleCount = 30
+        )
+
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center),
+            contentAlignment = Alignment.Center
         ) {
+            // Rotating holo scan behind text
+            LottieHoloScan(modifier = Modifier.size(250.dp))
+
             AnimatedVisibility(
                 visible = visible,
                 enter = fadeIn(

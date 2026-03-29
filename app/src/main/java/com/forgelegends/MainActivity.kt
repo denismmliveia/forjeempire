@@ -155,7 +155,11 @@ class MainActivity : ComponentActivity() {
                                     popUpTo(NavRoutes.FORGE) { inclusive = true }
                                 }
                             },
-                            onTrySecretCode = { code -> viewModel.trySecretCode(code) },
+                            onTrySecretCode = { code ->
+                                val result = viewModel.trySecretCode(code)
+                                if (result == null) viewModel.soundManager.playError()
+                                result
+                            },
                             onForgeSecret = { conceptId ->
                                 viewModel.startSecretRun(conceptId)
                                 navController.navigate(NavRoutes.FORGE) {
