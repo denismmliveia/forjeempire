@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CutCornerShape
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -22,9 +21,9 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 import com.forgelegends.ui.theme.CyanGlow
-import com.forgelegends.ui.theme.DeepSpace
 import com.forgelegends.ui.theme.ElectricBlue
 import com.forgelegends.ui.theme.HoloPurple
 import com.forgelegends.ui.theme.NeonCyan
@@ -49,6 +48,9 @@ fun SciFiButton(
 
     val shape = CutCornerShape(topStart = 12.dp, bottomEnd = 12.dp)
 
+    // Dim when disabled
+    val effectiveAlpha = if (enabled) 1f else 0.35f
+
     val backgroundModifier = when (variant) {
         SciFiButtonVariant.Primary -> Modifier.background(
             brush = Brush.linearGradient(listOf(NeonCyan, ElectricBlue)),
@@ -67,7 +69,7 @@ fun SciFiButton(
             )
     }
 
-    val glowModifier = if (variant != SciFiButtonVariant.Outlined) {
+    val glowModifier = if (variant != SciFiButtonVariant.Outlined && enabled) {
         Modifier.drawBehind {
             drawRoundRect(
                 color = CyanGlow.copy(alpha = glowAlpha),
@@ -78,6 +80,7 @@ fun SciFiButton(
 
     Box(
         modifier = modifier
+            .graphicsLayer(alpha = effectiveAlpha)
             .then(glowModifier)
             .then(backgroundModifier)
             .clickable(

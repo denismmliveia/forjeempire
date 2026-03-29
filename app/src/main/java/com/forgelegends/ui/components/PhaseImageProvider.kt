@@ -2,6 +2,8 @@ package com.forgelegends.ui.components
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -32,22 +34,29 @@ object PhaseImageProvider {
         contentScale: ContentScale = ContentScale.Fit
     ) {
         val context = LocalContext.current
-        val bitmap = remember(conceptId, phase) {
-            try {
-                context.assets.open(phaseImagePath(conceptId, phase)).use {
-                    BitmapFactory.decodeStream(it)
+
+        Crossfade(
+            targetState = phase,
+            animationSpec = tween(600),
+            modifier = modifier,
+            label = "phase-crossfade"
+        ) { targetPhase ->
+            val bitmap = remember(conceptId, targetPhase) {
+                try {
+                    context.assets.open(phaseImagePath(conceptId, targetPhase)).use {
+                        BitmapFactory.decodeStream(it)
+                    }
+                } catch (_: Exception) {
+                    null
                 }
-            } catch (_: Exception) {
-                null
             }
-        }
-        bitmap?.let {
-            Image(
-                bitmap = it.asImageBitmap(),
-                contentDescription = "Phase $phase",
-                modifier = modifier,
-                contentScale = contentScale
-            )
+            bitmap?.let {
+                Image(
+                    bitmap = it.asImageBitmap(),
+                    contentDescription = "Layer $targetPhase",
+                    contentScale = contentScale
+                )
+            }
         }
     }
 }

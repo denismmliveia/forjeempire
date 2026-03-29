@@ -65,9 +65,11 @@ class MainActivity : ComponentActivity() {
                             concept = activeConcept,
                             onTap = viewModel::onTap,
                             onNavigateToWorkbench = {
+                                viewModel.soundManager.playButtonClick()
                                 navController.navigate(NavRoutes.HOLO_LAB)
                             },
                             onNavigateToProgress = {
+                                viewModel.soundManager.playButtonClick()
                                 navController.navigate(NavRoutes.LAYER_PROGRESS)
                             },
                             onNavigateToCompletion = {
@@ -76,6 +78,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             },
                             onNavigateToShowcase = {
+                                viewModel.soundManager.playButtonClick()
                                 navController.navigate(NavRoutes.HOLO_GALLERY)
                             }
                         )

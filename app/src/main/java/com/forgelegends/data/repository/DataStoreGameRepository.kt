@@ -25,6 +25,7 @@ class DataStoreGameRepository @Inject constructor(
         val KEY_CONCEPT_ID = stringPreferencesKey("active_concept_id")
         val KEY_SPARKS = longPreferencesKey("sparks")
         val KEY_SPARKS_PER_TAP = longPreferencesKey("sparks_per_tap")
+        val KEY_SPARKS_PER_SECOND = longPreferencesKey("sparks_per_second")
         val KEY_FORGE_LEVEL = intPreferencesKey("forge_level")
         val KEY_CURRENT_PHASE = intPreferencesKey("current_phase")
         val KEY_SPARKS_FOR_NEXT = longPreferencesKey("sparks_for_next_phase")
@@ -41,6 +42,7 @@ class DataStoreGameRepository @Inject constructor(
             activeConceptId = prefs[KEY_CONCEPT_ID] ?: "",
             sparks = prefs[KEY_SPARKS] ?: 0L,
             sparksPerTap = prefs[KEY_SPARKS_PER_TAP] ?: 1L,
+            sparksPerSecond = prefs[KEY_SPARKS_PER_SECOND] ?: 0L,
             forgeLevel = prefs[KEY_FORGE_LEVEL] ?: 1,
             currentPhase = prefs[KEY_CURRENT_PHASE] ?: 1,
             sparksForNextPhase = prefs[KEY_SPARKS_FOR_NEXT] ?: 100L,
@@ -59,6 +61,7 @@ class DataStoreGameRepository @Inject constructor(
             prefs[KEY_CONCEPT_ID] = state.activeConceptId
             prefs[KEY_SPARKS] = state.sparks
             prefs[KEY_SPARKS_PER_TAP] = state.sparksPerTap
+            prefs[KEY_SPARKS_PER_SECOND] = state.sparksPerSecond
             prefs[KEY_FORGE_LEVEL] = state.forgeLevel
             prefs[KEY_CURRENT_PHASE] = state.currentPhase
             prefs[KEY_SPARKS_FOR_NEXT] = state.sparksForNextPhase
