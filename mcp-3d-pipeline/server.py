@@ -54,6 +54,75 @@ def run_blender_script(script_path: str, args: dict = None, blend_file: str = No
         return f"ERROR: {e}"
 
 
+# ─── Animation / Spritesheet Tools ──────────────────────────────
+
+@mcp.tool()
+def blender_render_animation(
+    blend_file: str,
+    output_name: str = "animation",
+    frame_count: int = 32,
+    resolution: int = 512,
+    engine: str = "BLENDER_EEVEE",
+    samples: int = 64,
+    transparent_bg: bool = True,
+    spritesheet_cols: int = 0,
+) -> str:
+    """Render a Blender animation as individual frames, then pack into a spritesheet atlas.
+
+    Produces: output/<name>_sheet.png + output/<name>_sheet.json (metadata).
+
+    Args:
+        blend_file: Path to .blend file with keyframed animation or animated materials.
+        output_name: Base name for output files (e.g. 'plasma_bg').
+        frame_count: Total frames to render (1..frame_count).
+        resolution: Square resolution per frame in pixels.
+        engine: BLENDER_EEVEE (fast) or CYCLES (quality).
+        samples: Render samples.
+        transparent_bg: Render with transparent background (RGBA).
+        spritesheet_cols: Columns in atlas grid. 0 = auto (squarish).
+    """
+    frames_dir = str(OUTPUT_DIR / f"{output_name}_frames")
+    sheet_path = str(OUTPUT_DIR / f"{output_name}_sheet.png")
+
+    # Step 1: Render frames
+    render_args = {
+        "output_dir": frames_dir,
+        "frame_start": 1,
+        "frame_end": frame_count,
+        "resolution": resolution,
+        "engine": engine,
+        "samples": samples,
+        "use_gpu": True,
+        "transparent_bg": transparent_bg,
+    }
+    render_script = str(SCRIPTS_DIR / "render_animation.py")
+    render_result = run_blender_script(render_script, args=render_args, blend_file=blend_file)
+
+    if "ERROR" in render_result:
+        return render_result
+
+    # Step 2: Pack into spritesheet
+    spritesheet_script = str(SCRIPTS_DIR / "make_spritesheet.py")
+    cols_args = ["--cols", str(spritesheet_cols)] if spritesheet_cols > 0 else []
+    try:
+        sp_result = subprocess.run(
+            [sys.executable, spritesheet_script, frames_dir, sheet_path] + cols_args,
+            capture_output=True, text=True, timeout=120,
+            encoding="utf-8", errors="replace",
+        )
+        if sp_result.returncode != 0:
+            return f"Frames rendered OK but spritesheet failed:\n{sp_result.stderr}"
+        spritesheet_output = sp_result.stdout.strip()
+    except Exception as e:
+        return f"Frames rendered OK but spritesheet failed: {e}"
+
+    # Step 3: Cleanup individual frames
+    import shutil
+    shutil.rmtree(frames_dir, ignore_errors=True)
+
+    return f"{render_result}\n{spritesheet_output}\nSpritesheet: {sheet_path}"
+
+
 # ─── Blender Tools ───────────────────────────────────────────────
 
 @mcp.tool()
@@ -108,7 +177,7 @@ def blender_render(
     Args:
         blend_file: Path to the .blend file to render.
         output_path: Output image path. Defaults to output/render.png.
-        engine: Render engine: CYCLES or BLENDER_EEVEE_NEXT.
+        engine: Render engine: CYCLES or BLENDER_EEVEE.
         resolution_x: Width in pixels.
         resolution_y: Height in pixels.
         samples: Number of render samples.

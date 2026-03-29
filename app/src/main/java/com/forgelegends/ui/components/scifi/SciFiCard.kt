@@ -2,6 +2,7 @@ package com.forgelegends.ui.components.scifi
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
@@ -24,6 +25,7 @@ fun SciFiCard(
     modifier: Modifier = Modifier,
     borderStart: Color = NeonCyan,
     borderEnd: Color = HoloPurple,
+    showHoloGrid: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
     Surface(
@@ -44,6 +46,19 @@ fun SciFiCard(
         shape = RoundedCornerShape(12.dp),
         color = NebulaSurface
     ) {
-        Box(modifier = Modifier.padding(16.dp), content = content)
+        Box(modifier = Modifier.padding(16.dp)) {
+            // Subtle holographic grid overlay behind card content
+            if (showHoloGrid) {
+                AnimatedSpriteSheet(
+                    sheetAssetPath = "textures/holo_grid_sheet.png",
+                    metadataAssetPath = "textures/holo_grid_sheet.json",
+                    modifier = Modifier.fillMaxSize(),
+                    alpha = 0.08f,
+                    fps = 12,
+                    loop = true
+                )
+            }
+            content()
+        }
     }
 }

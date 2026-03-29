@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import com.forgelegends.ui.components.scifi.AnimatedSpriteSheet
 import com.forgelegends.ui.theme.NeonCyan
 import kotlinx.coroutines.delay
 
@@ -98,7 +99,20 @@ object PhaseImageProvider {
                 }
             }
 
-            // Energy flash overlay
+            // Blender-rendered energy burst overlay (plays once per phase change)
+            if (showFlash) {
+                AnimatedSpriteSheet(
+                    sheetAssetPath = "textures/energy_burst_sheet.png",
+                    metadataAssetPath = "textures/energy_burst_sheet.json",
+                    modifier = Modifier.fillMaxSize(),
+                    alpha = 0.7f,
+                    fps = 24,
+                    loop = false,
+                    playing = true
+                )
+            }
+
+            // Energy flash overlay (Canvas-based complement)
             if (flashAlpha > 0.01f) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
                     // Central bright flash

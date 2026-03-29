@@ -19,6 +19,7 @@ import com.forgelegends.ui.theme.VoidBlack
 fun SciFiBackground(
     modifier: Modifier = Modifier,
     showRadialGlow: Boolean = false,
+    showAnimatedTexture: Boolean = false,
     glowColor: Color = CyanGlow,
     content: @Composable BoxScope.() -> Unit
 ) {
@@ -42,7 +43,20 @@ fun SciFiBackground(
                         )
                     }
                 } else Modifier
-            ),
-        content = content
-    )
+            )
+    ) {
+        // Animated plasma texture overlay (subtle, behind content)
+        if (showAnimatedTexture) {
+            AnimatedSpriteSheet(
+                sheetAssetPath = "textures/plasma_bg_sheet.png",
+                metadataAssetPath = "textures/plasma_bg_sheet.json",
+                modifier = Modifier.fillMaxSize(),
+                alpha = 0.18f,
+                fps = 12,
+                loop = true
+            )
+        }
+        // Pass content into a nested Box so it layers on top
+        Box(modifier = Modifier.fillMaxSize(), content = content)
+    }
 }

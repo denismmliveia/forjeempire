@@ -116,7 +116,7 @@ fun ForgeScreen(
         onTap()
     }
 
-    SciFiBackground(showRadialGlow = true) {
+    SciFiBackground(showRadialGlow = true, showAnimatedTexture = true) {
         // Ambient particle layer behind everything
         PhotonParticleSystem(
             modifier = Modifier.fillMaxSize(),
