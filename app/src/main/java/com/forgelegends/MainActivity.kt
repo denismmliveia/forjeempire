@@ -55,7 +55,8 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate(dest) {
                                     popUpTo(NavRoutes.SPLASH) { inclusive = true }
                                 }
-                            }
+                            },
+                            onEnter = { viewModel.soundManager.playIntro() }
                         )
                     }
 

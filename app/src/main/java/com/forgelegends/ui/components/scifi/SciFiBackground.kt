@@ -45,15 +45,11 @@ fun SciFiBackground(
                 } else Modifier
             )
     ) {
-        // Animated plasma texture overlay (subtle, behind content)
+        // Procedural plasma background (smooth 60fps, no spritesheet)
         if (showAnimatedTexture) {
-            AnimatedSpriteSheet(
-                sheetAssetPath = "textures/plasma_bg_sheet.png",
-                metadataAssetPath = "textures/plasma_bg_sheet.json",
+            PlasmaBackground(
                 modifier = Modifier.fillMaxSize(),
-                alpha = 0.18f,
-                fps = 12,
-                loop = true
+                alpha = 0.75f
             )
         }
         // Pass content into a nested Box so it layers on top
