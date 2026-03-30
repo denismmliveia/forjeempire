@@ -2,16 +2,25 @@ package com.forgelegends.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.forgelegends.audio.SoundManager
 import com.forgelegends.data.repository.GameRepository
+import com.forgelegends.data.repository.PlayerProgressRepository
 import com.forgelegends.data.repository.WeaponShowcaseRepository
+import com.forgelegends.domain.model.Concept
 import com.forgelegends.domain.model.GameState
+import com.forgelegends.domain.model.Upgrade
+import com.forgelegends.domain.model.UpgradeType
 import com.forgelegends.domain.model.WeaponShowcaseEntry
 import com.forgelegends.domain.model.defaultUpgrades
+import com.forgelegends.domain.registry.ConceptRegistry
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -20,11 +29,32 @@ import javax.inject.Inject
 @HiltViewModel
 class GameViewModel @Inject constructor(
     private val gameRepository: GameRepository,
-    private val showcaseRepository: WeaponShowcaseRepository
+    private val showcaseRepository: WeaponShowcaseRepository,
+    private val playerProgressRepository: PlayerProgressRepository,
+    val conceptRegistry: ConceptRegistry,
+    val soundManager: SoundManager
 ) : ViewModel() {
 
     private val _gameState = MutableStateFlow(GameState())
     val gameState: StateFlow<GameState> = _gameState.asStateFlow()
+
+    private val _playerSeed = MutableStateFlow(0L)
+    private val _queuePosition = MutableStateFlow(0)
+
+    val shuffledQueue: StateFlow<List<Concept>> = _playerSeed.map { seed ->
+        if (seed == 0L) return@map emptyList()
+        val normal = conceptRegistry.normalConcepts.toMutableList()
+        normal.shuffle(java.util.Random(seed))
+        normal
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val nextConcept: StateFlow<Concept?> = combine(shuffledQueue, _queuePosition) { queue, pos ->
+        queue.getOrNull(pos)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
+    val forgeProgress: StateFlow<Pair<Int, Int>> = combine(shuffledQueue, _queuePosition) { queue, pos ->
+        pos to queue.size
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), 0 to 0)
 
     val showcaseEntries: StateFlow<List<WeaponShowcaseEntry>> =
         showcaseRepository.entries.stateIn(
@@ -37,6 +67,9 @@ class GameViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
+            playerProgressRepository.initSeedIfAbsent()
+        }
+        viewModelScope.launch {
             gameRepository.gameState.collect { saved ->
                 val state = if (saved.currentRunId.isEmpty()) {
                     saved.copy(currentRunId = UUID.randomUUID().toString())
@@ -46,6 +79,47 @@ class GameViewModel @Inject constructor(
                 _gameState.value = state
             }
         }
+        viewModelScope.launch {
+            playerProgressRepository.playerSeed.collect { _playerSeed.value = it }
+        }
+        viewModelScope.launch {
+            playerProgressRepository.queuePosition.collect { _queuePosition.value = it }
+        }
+        // Passive income tick loop
+        viewModelScope.launch {
+            var persistCounter = 0
+            while (true) {
+                delay(1000L)
+                val current = _gameState.value
+                if (current.runCompleted || current.sparksPerSecond <= 0L) continue
+                val earned = (current.sparksPerSecond * current.permanentBonus).toLong()
+                val updated = addSparks(current, earned)
+                if (updated.currentPhase > current.currentPhase) {
+                    soundManager.playPhaseComplete()
+                }
+                soundManager.playPassiveTick()
+                _gameState.value = updated
+                // Persist every 5 seconds to reduce DataStore writes
+                persistCounter++
+                if (persistCounter >= 5) {
+                    persistState(updated)
+                    persistCounter = 0
+                }
+            }
+        }
+    }
+
+    fun getActiveConcept(): Concept? =
+        conceptRegistry.getById(_gameState.value.activeConceptId)
+
+    fun trySecretCode(code: String): Concept? =
+        conceptRegistry.findBySecretWord(code)
+
+    fun startSecretRun(conceptId: String) {
+        viewModelScope.launch {
+            playerProgressRepository.addUnlockedSecret(conceptId)
+        }
+        startNewRun(conceptId)
     }
 
     fun onTap() {
@@ -53,10 +127,23 @@ class GameViewModel @Inject constructor(
         if (current.runCompleted) return
 
         val earned = (current.sparksPerTap * current.permanentBonus).toLong()
+        val updated = addSparks(current, earned)
+
+        // Play sounds
+        soundManager.playTap()
+        if (updated.currentPhase > current.currentPhase) {
+            soundManager.playPhaseComplete()
+        }
+
+        _gameState.value = updated
+        persistState(updated)
+    }
+
+    private fun addSparks(current: GameState, earned: Long): GameState {
         val newSparks = current.sparks + earned
         val newTotal = current.totalSparksThisRun + earned
 
-        val updated = if (newSparks >= current.sparksForNextPhase) {
+        return if (newSparks >= current.sparksForNextPhase) {
             val nextPhase = current.currentPhase + 1
             current.copy(
                 sparks = 0L,
@@ -67,9 +154,6 @@ class GameViewModel @Inject constructor(
         } else {
             current.copy(sparks = newSparks, totalSparksThisRun = newTotal)
         }
-
-        _gameState.value = updated
-        persistState(updated)
     }
 
     fun purchaseUpgrade(upgradeId: String) {
@@ -84,11 +168,15 @@ class GameViewModel @Inject constructor(
         newUpgrades[idx] = upgrade.copy(level = upgrade.level + 1)
 
         val newSparksPerTap = calculateSparksPerTap(newUpgrades)
+        val newSparksPerSecond = calculateSparksPerSecond(newUpgrades)
         val updated = current.copy(
             sparks = current.sparks - upgrade.currentCost,
             upgrades = newUpgrades,
-            sparksPerTap = newSparksPerTap
+            sparksPerTap = newSparksPerTap,
+            sparksPerSecond = newSparksPerSecond
         )
+
+        soundManager.playPurchase()
 
         _gameState.value = updated
         persistState(updated)
@@ -103,7 +191,7 @@ class GameViewModel @Inject constructor(
         val entry = WeaponShowcaseEntry(
             id = current.currentRunId,
             runNumber = current.runNumber,
-            weaponFamily = current.activeWeaponFamily,
+            conceptId = current.activeConceptId,
             completedAtEpochMillis = System.currentTimeMillis(),
             totalSparks = current.totalSparksThisRun
         )
@@ -111,22 +199,36 @@ class GameViewModel @Inject constructor(
         viewModelScope.launch {
             showcaseRepository.addIfAbsent(entry)
         }
+
+        // Advance queue only if the completed concept was a normal (non-secret) one
+        val completedConcept = conceptRegistry.getById(current.activeConceptId)
+        if (completedConcept != null && !completedConcept.secret) {
+            viewModelScope.launch { playerProgressRepository.advanceQueue() }
+        }
     }
 
-    fun startNewRun() {
+    fun startNewRun(conceptId: String) {
         val current = _gameState.value
-        if (!current.runCompleted) return
 
         val newState = GameState(
             currentRunId = UUID.randomUUID().toString(),
-            activeWeaponFamily = current.activeWeaponFamily.next(),
-            runNumber = current.runNumber + 1,
-            permanentBonus = current.permanentBonus + 0.1,
+            activeConceptId = conceptId,
+            runNumber = if (current.runCompleted || current.activeConceptId.isEmpty()) current.runNumber + 1 else 1,
+            permanentBonus = if (current.runCompleted) current.permanentBonus + 0.1 else 1.0,
             upgrades = defaultUpgrades()
         )
 
         _gameState.value = newState
         persistState(newState)
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Persist latest state and release audio
+        viewModelScope.launch {
+            gameRepository.saveGameState(_gameState.value)
+        }
+        soundManager.release()
     }
 
     private fun persistState(state: GameState) {
@@ -139,13 +241,23 @@ class GameViewModel @Inject constructor(
         return (100 * Math.pow(2.5, (phase - 1).toDouble())).toLong()
     }
 
-    private fun calculateSparksPerTap(upgrades: List<com.forgelegends.domain.model.Upgrade>): Long {
+    private fun calculateSparksPerTap(upgrades: List<Upgrade>): Long {
         var base = 1.0
         for (u in upgrades) {
-            if (u.level > 0) {
+            if (u.type == UpgradeType.TAP && u.level > 0) {
                 base += u.multiplier * u.level
             }
         }
         return base.toLong().coerceAtLeast(1L)
+    }
+
+    private fun calculateSparksPerSecond(upgrades: List<Upgrade>): Long {
+        var base = 0.0
+        for (u in upgrades) {
+            if (u.type == UpgradeType.PASSIVE && u.level > 0) {
+                base += u.multiplier * u.level
+            }
+        }
+        return base.toLong()
     }
 }

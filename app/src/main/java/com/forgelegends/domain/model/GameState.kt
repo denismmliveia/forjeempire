@@ -2,9 +2,10 @@ package com.forgelegends.domain.model
 
 data class GameState(
     val currentRunId: String = "",
-    val activeWeaponFamily: WeaponFamily = WeaponFamily.RUNIC_GREATSWORD,
+    val activeConceptId: String = "",
     val sparks: Long = 0L,
     val sparksPerTap: Long = 1L,
+    val sparksPerSecond: Long = 0L,
     val forgeLevel: Int = 1,
     val currentPhase: Int = 1,
     val maxPhase: Int = 6,
@@ -23,32 +24,62 @@ data class GameState(
 }
 
 fun defaultUpgrades(): List<Upgrade> = listOf(
+    // Tap upgrades
     Upgrade(
-        id = "furnace_temp",
-        name = "Furnace Temperature",
-        description = "Hotter flames, better steel",
+        id = "emitter_power",
+        name = "Emitter Power",
+        description = "Stronger emitters, faster projection",
         baseCost = 10,
-        multiplier = 1.5
+        multiplier = 1.5,
+        type = UpgradeType.TAP
     ),
     Upgrade(
-        id = "hammer_weight",
-        name = "Hammer Weight",
-        description = "Heavier strikes, faster shaping",
+        id = "lens_density",
+        name = "Lens Density",
+        description = "Denser lenses, sharper layers",
         baseCost = 25,
-        multiplier = 2.0
+        multiplier = 2.0,
+        type = UpgradeType.TAP
     ),
     Upgrade(
-        id = "metal_quality",
-        name = "Metal Quality",
-        description = "Purer ore, stronger weapons",
+        id = "photon_purity",
+        name = "Photon Purity",
+        description = "Purer photons, cleaner holograms",
         baseCost = 50,
-        multiplier = 3.0
+        multiplier = 3.0,
+        type = UpgradeType.TAP
     ),
     Upgrade(
-        id = "smithing_technique",
-        name = "Smithing Technique",
-        description = "Ancient knowledge, masterful craft",
+        id = "holo_precision",
+        name = "Holo Precision",
+        description = "Advanced algorithms, masterful detail",
         baseCost = 100,
-        multiplier = 5.0
+        multiplier = 5.0,
+        type = UpgradeType.TAP
+    ),
+    // Passive upgrades
+    Upgrade(
+        id = "auto_emitter",
+        name = "Auto-Emitter",
+        description = "Emits photons automatically",
+        baseCost = 50,
+        multiplier = 1.0,
+        type = UpgradeType.PASSIVE
+    ),
+    Upgrade(
+        id = "holo_drone",
+        name = "Holo Drone",
+        description = "Autonomous projection drone",
+        baseCost = 200,
+        multiplier = 3.0,
+        type = UpgradeType.PASSIVE
+    ),
+    Upgrade(
+        id = "quantum_loop",
+        name = "Quantum Loop",
+        description = "Self-sustaining photon loop",
+        baseCost = 1000,
+        multiplier = 10.0,
+        type = UpgradeType.PASSIVE
     )
 )

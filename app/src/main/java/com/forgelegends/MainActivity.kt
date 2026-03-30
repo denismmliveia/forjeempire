@@ -6,15 +6,21 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.forgelegends.presentation.GameViewModel
 import com.forgelegends.ui.navigation.NavRoutes
+import com.forgelegends.ui.screen.BlueprintSelectScreen
 import com.forgelegends.ui.screen.CompletionScreen
 import com.forgelegends.ui.screen.ForgeScreen
-import com.forgelegends.ui.screen.WeaponProgressScreen
-import com.forgelegends.ui.screen.WorkbenchScreen
+import com.forgelegends.ui.screen.HoloGalleryScreen
+import com.forgelegends.ui.screen.HoloLabScreen
+import com.forgelegends.ui.screen.HoloViewerScreen
+import com.forgelegends.ui.screen.LayerProgressScreen
+import com.forgelegends.ui.screen.SplashScreen
 import com.forgelegends.ui.theme.ForgeLegendTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -29,35 +35,68 @@ class MainActivity : ComponentActivity() {
                 val viewModel: GameViewModel = hiltViewModel()
                 val gameState by viewModel.gameState.collectAsState()
                 val showcaseEntries by viewModel.showcaseEntries.collectAsState()
+                val nextConcept by viewModel.nextConcept.collectAsState()
+                val forgeProgress by viewModel.forgeProgress.collectAsState()
+                val activeConcept = viewModel.getActiveConcept()
+                val conceptLookup = { id: String -> viewModel.conceptRegistry.getById(id) }
 
                 NavHost(
                     navController = navController,
-                    startDestination = NavRoutes.FORGE
+                    startDestination = NavRoutes.SPLASH
                 ) {
+                    composable(NavRoutes.SPLASH) {
+                        SplashScreen(
+                            onTimeout = {
+                                val dest = if (gameState.activeConceptId.isEmpty()) {
+                                    NavRoutes.BLUEPRINT_SELECT
+                                } else {
+                                    NavRoutes.FORGE
+                                }
+                                navController.navigate(dest) {
+                                    popUpTo(NavRoutes.SPLASH) { inclusive = true }
+                                }
+                            },
+                            onEnter = { viewModel.soundManager.playIntro() }
+                        )
+                    }
+
                     composable(NavRoutes.FORGE) {
                         ForgeScreen(
                             gameState = gameState,
+                            concept = activeConcept,
                             onTap = viewModel::onTap,
                             onNavigateToWorkbench = {
-                                navController.navigate(NavRoutes.WORKBENCH)
+                                viewModel.soundManager.playButtonClick()
+                                navController.navigate(NavRoutes.HOLO_LAB)
                             },
                             onNavigateToProgress = {
-                                navController.navigate(NavRoutes.WEAPON_PROGRESS)
+                                viewModel.soundManager.playButtonClick()
+                                navController.navigate(NavRoutes.LAYER_PROGRESS)
+                            },
+                            onNavigateToCompletion = {
+                                navController.navigate(NavRoutes.COMPLETION) {
+                                    launchSingleTop = true
+                                }
+                            },
+                            onNavigateToShowcase = {
+                                viewModel.soundManager.playButtonClick()
+                                navController.navigate(NavRoutes.HOLO_GALLERY)
                             }
                         )
                     }
 
-                    composable(NavRoutes.WORKBENCH) {
-                        WorkbenchScreen(
+                    composable(NavRoutes.HOLO_LAB) {
+                        HoloLabScreen(
                             gameState = gameState,
                             onPurchaseUpgrade = viewModel::purchaseUpgrade,
                             onBack = { navController.popBackStack() }
                         )
                     }
 
-                    composable(NavRoutes.WEAPON_PROGRESS) {
-                        WeaponProgressScreen(
+                    composable(NavRoutes.LAYER_PROGRESS) {
+                        LayerProgressScreen(
                             gameState = gameState,
+                            concept = activeConcept,
                             onBack = { navController.popBackStack() },
                             onNavigateToCompletion = {
                                 navController.navigate(NavRoutes.COMPLETION)
@@ -68,14 +107,65 @@ class MainActivity : ComponentActivity() {
                     composable(NavRoutes.COMPLETION) {
                         CompletionScreen(
                             gameState = gameState,
-                            showcaseEntries = showcaseEntries,
-                            onArchiveAndNewRun = {
+                            concept = activeConcept,
+                            onNavigateToConceptSelect = {
                                 viewModel.archiveCurrentRun()
-                                viewModel.startNewRun()
-                                navController.popBackStack(
-                                    NavRoutes.FORGE,
-                                    inclusive = false
-                                )
+                                navController.navigate(NavRoutes.BLUEPRINT_SELECT) {
+                                    popUpTo(NavRoutes.FORGE) { inclusive = false }
+                                }
+                            },
+                            onNavigateToShowcase = {
+                                navController.navigate(NavRoutes.HOLO_GALLERY)
+                            }
+                        )
+                    }
+
+                    composable(NavRoutes.HOLO_GALLERY) {
+                        HoloGalleryScreen(
+                            entries = showcaseEntries,
+                            conceptLookup = conceptLookup,
+                            onEntryClick = { entryId ->
+                                navController.navigate(NavRoutes.holoViewer(entryId))
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(
+                        route = NavRoutes.HOLO_VIEWER,
+                        arguments = listOf(navArgument("entryId") { type = NavType.StringType })
+                    ) { backStackEntry ->
+                        val entryId = backStackEntry.arguments?.getString("entryId")
+                        val entry = showcaseEntries.find { it.id == entryId }
+                        val entryConcept = entry?.let { conceptLookup(it.conceptId) }
+                        HoloViewerScreen(
+                            entry = entry,
+                            concept = entryConcept,
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
+
+                    composable(NavRoutes.BLUEPRINT_SELECT) {
+                        BlueprintSelectScreen(
+                            nextConcept = nextConcept,
+                            forgeProgress = forgeProgress,
+                            showcaseEntries = showcaseEntries,
+                            onForgeNext = { conceptId ->
+                                viewModel.startNewRun(conceptId)
+                                navController.navigate(NavRoutes.FORGE) {
+                                    popUpTo(NavRoutes.FORGE) { inclusive = true }
+                                }
+                            },
+                            onTrySecretCode = { code ->
+                                val result = viewModel.trySecretCode(code)
+                                if (result == null) viewModel.soundManager.playError()
+                                result
+                            },
+                            onForgeSecret = { conceptId ->
+                                viewModel.startSecretRun(conceptId)
+                                navController.navigate(NavRoutes.FORGE) {
+                                    popUpTo(NavRoutes.FORGE) { inclusive = true }
+                                }
                             }
                         )
                     }

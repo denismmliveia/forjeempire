@@ -5,18 +5,20 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
 private val DarkColorScheme = darkColorScheme(
-    primary = ForgeOrange,
-    secondary = ForgeGold,
-    tertiary = SteelBlue,
-    background = DarkForge,
-    surface = DarkSurface,
-    surfaceVariant = MediumSurface,
-    onPrimary = DarkForge,
-    onSecondary = DarkForge,
-    onBackground = LightText,
-    onSurface = LightText,
-    onSurfaceVariant = MutedText,
-    error = EmberRed
+    primary = NeonCyan,
+    secondary = ElectricBlue,
+    tertiary = HoloPurple,
+    background = VoidBlack,
+    surface = DeepSpace,
+    surfaceVariant = NebulaSurface,
+    onPrimary = VoidBlack,
+    onSecondary = VoidBlack,
+    onTertiary = CoolWhite,
+    onBackground = CoolWhite,
+    onSurface = CoolWhite,
+    onSurfaceVariant = GhostText,
+    error = NeonMagenta,
+    onError = VoidBlack
 )
 
 @Composable

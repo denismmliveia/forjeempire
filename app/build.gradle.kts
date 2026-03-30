@@ -59,4 +59,6 @@ dependencies {
     implementation(libs.hilt.navigation.compose)
 
     implementation(libs.core.ktx)
+
+    implementation(libs.lottie.compose)
 }
